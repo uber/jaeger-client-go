@@ -34,29 +34,29 @@ const (
 // Metrics is a collection of metrics for an operation describing
 // throughput, success, errors, and performance.
 type Metrics struct {
-	// RequestCountSuccess is a counter of the total number of successes.
-	RequestCountSuccess metrics.Counter `metric:"requests" tags:"error=false"`
+	// OperationCountSuccess is a counter of the total number of successes.
+	OperationCountSuccess metrics.Counter `metric:"operation" tags:"result=ok"`
 
-	// RequestCountFailures is a counter of the number of times any failure has been observed.
-	RequestCountFailures metrics.Counter `metric:"requests" tags:"error=true"`
+	// OperationCountFailures is a counter of the number of times any failure has been observed.
+	OperationCountFailures metrics.Counter `metric:"operation" tags:"result=err"`
 
-	// RequestLatencySuccess is a latency histogram of succesful requests.
-	RequestLatencySuccess metrics.Timer `metric:"request_latency" tags:"error=false"`
+	// OperationLatencySuccess is a latency histogram of successful requests.
+	OperationLatencySuccess metrics.Timer `metric:"latency" tags:"result=ok"`
 
-	// RequestLatencyFailures is a latency histogram of failed requests.
-	RequestLatencyFailures metrics.Timer `metric:"request_latency" tags:"error=true"`
+	// OperationLatencyFailures is a latency histogram of failed requests.
+	OperationLatencyFailures metrics.Timer `metric:"latency" tags:"result=err"`
 
 	// HTTPStatusCode2xx is a counter of the total number of requests with HTTP status code 200-299
-	HTTPStatusCode2xx metrics.Counter `metric:"http_requests" tags:"status_code=2xx"`
+	HTTPStatusCode2xx metrics.Counter `metric:"operation" tags:"result=ok,transport=http,status_code=2xx"`
 
 	// HTTPStatusCode3xx is a counter of the total number of requests with HTTP status code 300-399
-	HTTPStatusCode3xx metrics.Counter `metric:"http_requests" tags:"status_code=3xx"`
+	HTTPStatusCode3xx metrics.Counter `metric:"operation" tags:"result=ok,transport=http,status_code=3xx"`
 
 	// HTTPStatusCode4xx is a counter of the total number of requests with HTTP status code 400-499
-	HTTPStatusCode4xx metrics.Counter `metric:"http_requests" tags:"status_code=4xx"`
+	HTTPStatusCode4xx metrics.Counter `metric:"operation" tags:"result=err,transport=http,status_code=4xx"`
 
 	// HTTPStatusCode5xx is a counter of the total number of requests with HTTP status code 500-599
-	HTTPStatusCode5xx metrics.Counter `metric:"http_requests" tags:"status_code=5xx"`
+	HTTPStatusCode5xx metrics.Counter `metric:"operation" tags:"result=err,transport=http,status_code=5xx"`
 }
 
 func (m *Metrics) recordHTTPStatusCode(statusCode uint16) {

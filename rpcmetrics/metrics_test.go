@@ -56,12 +56,12 @@ func TestMetricsByOperation(t *testing.T) {
 	m5 := mbe.get("overflow2")
 
 	for _, m := range []*Metrics{m1, m2, m2a, m3, m4, m5} {
-		m.RequestCountSuccess.Inc(1)
+		m.OperationCountSuccess.Inc(1)
 	}
 
 	testutils.AssertCounterMetrics(t, met,
-		testutils.ExpectedMetric{Name: "requests", Tags: operationTags("abc1", "error", "false"), Value: 3},
-		testutils.ExpectedMetric{Name: "requests", Tags: operationTags("abc3", "error", "false"), Value: 1},
-		testutils.ExpectedMetric{Name: "requests", Tags: operationTags("other", "error", "false"), Value: 2},
+		testutils.ExpectedMetric{Name: "operation", Tags: operationTags("abc1", "result", "ok"), Value: 3},
+		testutils.ExpectedMetric{Name: "operation", Tags: operationTags("abc3", "result", "ok"), Value: 1},
+		testutils.ExpectedMetric{Name: "operation", Tags: operationTags("other", "result", "ok"), Value: 2},
 	)
 }

@@ -52,8 +52,8 @@ func ExampleObserver() {
 	span.Finish()
 
 	c, _ := metricsFactory.Snapshot()
-	fmt.Printf("requests (success): %d\n", c["requests|error=false|operation=test"])
-	fmt.Printf("requests (failure): %d\n", c["requests|error=true|operation=test"])
+	fmt.Printf("requests (success): %d\n", c["operation|operation=test|result=ok"])
+	fmt.Printf("requests (failure): %d\n", c["operation|operation=test|result=err"])
 	// Output:
 	// requests (success): 1
 	// requests (failure): 0
@@ -118,18 +118,17 @@ func TestObserver(t *testing.T) {
 
 		u.AssertCounterMetrics(t,
 			testTracer.metrics,
-			u.ExpectedMetric{Name: "requests", Tags: operationTags("local-span", "error", "false"), Value: 0},
-			u.ExpectedMetric{Name: "requests", Tags: operationTags("get-user", "error", "false"), Value: 1},
-			u.ExpectedMetric{Name: "requests", Tags: operationTags("get-user", "error", "true"), Value: 1},
-			u.ExpectedMetric{Name: "requests", Tags: operationTags("get-user-override", "error", "false"), Value: 1},
-			u.ExpectedMetric{Name: "requests", Tags: operationTags("get-user-client", "error", "false"), Value: 0},
+			u.ExpectedMetric{Name: "operation", Tags: operationTags("local-span", "result", "ok"), Value: 0},
+			u.ExpectedMetric{Name: "operation", Tags: operationTags("get-user", "result", "ok"), Value: 1},
+			u.ExpectedMetric{Name: "operation", Tags: operationTags("get-user", "result", "err"), Value: 1},
+			u.ExpectedMetric{Name: "operation", Tags: operationTags("get-user-override", "result", "ok"), Value: 1},
+			u.ExpectedMetric{Name: "operation", Tags: operationTags("get-user-client", "result", "ok"), Value: 0},
 		)
 		// TODO something wrong with string generation, .P99 should not be appended to the tag
 		// as a result we cannot use u.AssertGaugeMetrics
 		_, g := testTracer.metrics.Snapshot()
-		t.Log(g)
-		assert.EqualValues(t, 51, g["request_latency|error=false|operation=get-user.P99"])
-		assert.EqualValues(t, 51, g["request_latency|error=true|operation=get-user.P99"])
+		assert.EqualValues(t, 51, g["latency|operation=get-user|result=ok.P99"])
+		assert.EqualValues(t, 51, g["latency|operation=get-user|result=err.P99"])
 	})
 }
 
@@ -142,13 +141,13 @@ func TestTags(t *testing.T) {
 
 	testCases := []tagTestCase{
 		{key: "something", value: 42, metrics: []u.ExpectedMetric{
-			{Name: "requests", Value: 1, Tags: tags("error", "false")},
+			{Name: "operation", Value: 1, Tags: tags("result", "ok")},
 		}},
 		{key: "error", value: true, metrics: []u.ExpectedMetric{
-			{Name: "requests", Value: 1, Tags: tags("error", "true")},
+			{Name: "operation", Value: 1, Tags: tags("result", "err")},
 		}},
 		{key: "error", value: "true", metrics: []u.ExpectedMetric{
-			{Name: "requests", Value: 1, Tags: tags("error", "true")},
+			{Name: "operation", Value: 1, Tags: tags("result", "err")},
 		}},
 	}
 
@@ -158,10 +157,14 @@ func TestTags(t *testing.T) {
 			uint16(i * 100),
 			fmt.Sprintf("%d00", i),
 		}
+		result := "ok"
+		if i >= 4 {
+			result = "err"
+		}
 		for _, v := range values {
 			testCases = append(testCases, tagTestCase{
 				key: "http.status_code", value: v, metrics: []u.ExpectedMetric{
-					{Name: "http_requests", Value: 1, Tags: tags("status_code", fmt.Sprintf("%dxx", i))},
+					{Name: "operation", Value: 1, Tags: tags("status_code", fmt.Sprintf("%dxx", i), "transport", "http", "result", result)},
 				},
 			})
 		}

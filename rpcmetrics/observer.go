@@ -152,14 +152,21 @@ func (so *SpanObserver) OnFinish(options opentracing.FinishOptions) {
 
 	mets := so.metricsByOperation.get(so.operationName)
 	latency := options.FinishTime.Sub(so.startTime)
+	isHTTPOperation := so.httpStatusCode != 0
 	if so.err {
-		mets.RequestCountFailures.Inc(1)
-		mets.RequestLatencyFailures.Record(latency)
+		if !isHTTPOperation {
+			mets.OperationCountFailures.Inc(1)
+		}
+		mets.OperationLatencyFailures.Record(latency)
 	} else {
-		mets.RequestCountSuccess.Inc(1)
-		mets.RequestLatencySuccess.Record(latency)
+		if !isHTTPOperation {
+			mets.OperationCountSuccess.Inc(1)
+		}
+		mets.OperationLatencySuccess.Record(latency)
 	}
-	mets.recordHTTPStatusCode(so.httpStatusCode)
+	if isHTTPOperation {
+		mets.recordHTTPStatusCode(so.httpStatusCode)
+	}
 }
 
 // OnSetOperationName records new operation name.
