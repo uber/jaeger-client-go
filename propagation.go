@@ -17,6 +17,7 @@ package jaeger
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -25,6 +26,12 @@ import (
 	"sync"
 
 	opentracing "github.com/opentracing/opentracing-go"
+)
+
+var (
+	// errCannotMergeSpanContexts occurs when a CompositePropagator is unable to merge multiple SpanContexts extracted
+	// via the underlying Extractors due to clashes. Note that this is only used internally by the composite propagator.
+	errCannotMergeSpanContexts = errors.New("Composite propagator cannot merge extracted span contexts")
 )
 
 // Injector is responsible for injecting SpanContext instances in a manner suitable
@@ -51,15 +58,24 @@ type Extractor interface {
 	Extract(carrier interface{}) (SpanContext, error)
 }
 
-type textMapPropagator struct {
+// Propagator is a composite type embedding both an Injector and an Extractor.
+type Propagator interface {
+	Injector
+	Extractor
+}
+
+// TextMapPropagator can be used to extract and inject Jaeger headers into SpanContexts using the TextMap format.
+type TextMapPropagator struct {
 	headerKeys  *HeadersConfig
 	metrics     Metrics
 	encodeValue func(string) string
 	decodeValue func(string) string
 }
 
-func newTextMapPropagator(headerKeys *HeadersConfig, metrics Metrics) *textMapPropagator {
-	return &textMapPropagator{
+// NewTextMapPropagator creates a Propagator for extracting and injecting Jaeger headers into SpanContexts using the
+// TextMap format.
+func NewTextMapPropagator(headerKeys *HeadersConfig, metrics Metrics) *TextMapPropagator {
+	return &TextMapPropagator{
 		headerKeys: headerKeys,
 		metrics:    metrics,
 		encodeValue: func(val string) string {
@@ -71,8 +87,10 @@ func newTextMapPropagator(headerKeys *HeadersConfig, metrics Metrics) *textMapPr
 	}
 }
 
-func newHTTPHeaderPropagator(headerKeys *HeadersConfig, metrics Metrics) *textMapPropagator {
-	return &textMapPropagator{
+// NewHTTPHeaderPropagator creates a Propagator for extracting and injecting Jaeger headers into SpanContexts using the
+// HTTP format.
+func NewHTTPHeaderPropagator(headerKeys *HeadersConfig, metrics Metrics) *TextMapPropagator {
+	return &TextMapPropagator{
 		headerKeys: headerKeys,
 		metrics:    metrics,
 		encodeValue: func(val string) string {
@@ -88,19 +106,23 @@ func newHTTPHeaderPropagator(headerKeys *HeadersConfig, metrics Metrics) *textMa
 	}
 }
 
-type binaryPropagator struct {
+// BinaryPropagator can be used to extract and inject Jaeger headers into SpanContexts using the Binary format.
+type BinaryPropagator struct {
 	tracer  *Tracer
 	buffers sync.Pool
 }
 
-func newBinaryPropagator(tracer *Tracer) *binaryPropagator {
-	return &binaryPropagator{
+// NewBinaryPropagator creates a Propagator for extracting and injecting Jaeger headers into SpanContexts using the
+// Binary format.
+func NewBinaryPropagator(tracer *Tracer) *BinaryPropagator {
+	return &BinaryPropagator{
 		tracer:  tracer,
 		buffers: sync.Pool{New: func() interface{} { return &bytes.Buffer{} }},
 	}
 }
 
-func (p *textMapPropagator) Inject(
+// Inject conforms to the Injector interface for decoding Jaeger headers using the default TextMap format
+func (p *TextMapPropagator) Inject(
 	sc SpanContext,
 	abstractCarrier interface{},
 ) error {
@@ -121,7 +143,8 @@ func (p *textMapPropagator) Inject(
 	return nil
 }
 
-func (p *textMapPropagator) Extract(abstractCarrier interface{}) (SpanContext, error) {
+// Extract conforms to the Extractor interface for injecting Jaeger headers using the default TextMap format
+func (p *TextMapPropagator) Extract(abstractCarrier interface{}) (SpanContext, error) {
 	textMapReader, ok := abstractCarrier.(opentracing.TextMapReader)
 	if !ok {
 		return emptyContext, opentracing.ErrInvalidCarrier
@@ -166,7 +189,8 @@ func (p *textMapPropagator) Extract(abstractCarrier interface{}) (SpanContext, e
 	return ctx, nil
 }
 
-func (p *binaryPropagator) Inject(
+// Inject conforms to the Injector interface for decoding Jaeger headers using the Binary format
+func (p *BinaryPropagator) Inject(
 	sc SpanContext,
 	abstractCarrier interface{},
 ) error {
@@ -207,7 +231,8 @@ func (p *binaryPropagator) Inject(
 	return nil
 }
 
-func (p *binaryPropagator) Extract(abstractCarrier interface{}) (SpanContext, error) {
+// Extract conforms to the Extractor interface for injecting Jaeger headers using the Binary format
+func (p *BinaryPropagator) Extract(abstractCarrier interface{}) (SpanContext, error) {
 	carrier, ok := abstractCarrier.(io.Reader)
 	if !ok {
 		return emptyContext, opentracing.ErrInvalidCarrier
@@ -269,7 +294,7 @@ func (p *binaryPropagator) Extract(abstractCarrier interface{}) (SpanContext, er
 // is converted to map[string]string { "key1" : "value1",
 //                                     "key2" : "value2",
 //                                     "key3" : "value3" }
-func (p *textMapPropagator) parseCommaSeparatedMap(value string) map[string]string {
+func (p *TextMapPropagator) parseCommaSeparatedMap(value string) map[string]string {
 	baggage := make(map[string]string)
 	value, err := url.QueryUnescape(value)
 	if err != nil {
@@ -289,12 +314,191 @@ func (p *textMapPropagator) parseCommaSeparatedMap(value string) map[string]stri
 
 // Converts a baggage item key into an http header format,
 // by prepending TraceBaggageHeaderPrefix and encoding the key string
-func (p *textMapPropagator) addBaggageKeyPrefix(key string) string {
+func (p *TextMapPropagator) addBaggageKeyPrefix(key string) string {
 	// TODO encodeBaggageKeyAsHeader add caching and escaping
 	return fmt.Sprintf("%v%v", p.headerKeys.TraceBaggageHeaderPrefix, key)
 }
 
-func (p *textMapPropagator) removeBaggageKeyPrefix(key string) string {
+func (p *TextMapPropagator) removeBaggageKeyPrefix(key string) string {
 	// TODO decodeBaggageHeaderKey add caching and escaping
 	return key[len(p.headerKeys.TraceBaggageHeaderPrefix):]
+}
+
+// CompositePropagator can be used to extract and inject OpenTracing headers into SpanContexts using multiple
+// propagators.
+type CompositePropagator struct {
+	propagators []Propagator
+}
+
+// NewCompositePropagator creates a Propagator that can be used to perform extraction and injection of SpanContexts from
+// and into carriers from multiple Propagators.
+func NewCompositePropagator(propagators []Propagator) *CompositePropagator {
+	return &CompositePropagator{
+		propagators: propagators,
+	}
+}
+
+// Inject attempts to inject a SpanContext into a given carrier using the underlying propagators. If one of the
+// propagators is unable to inject the SpanContext, this method errors out (causing injection attempts using the
+// subsequent propagators to be skipped).
+func (p *CompositePropagator) Inject(sc SpanContext, abstractCarrier interface{}) error {
+	for _, propagator := range p.propagators {
+		err := propagator.Inject(sc, abstractCarrier)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Extract attempts to extract a SpanContext from the given carrier using the underlying propagators.
+//
+// If multiple propagators are capable of extracting a valid context, this propagator will ensure the contexts match
+// eachother. Contexts are considered as non-clashing as long as their IDs and baggage match (or extend) eachother. If
+// the extracted contexts clash (e.g. by having different values for what would be the same baggage item or different
+// IDs), an ErrSpanContextCorrupted will be returned.
+//
+// If no underlying propagator is able to extract a valid span, all the errors will be combined together in order to
+// produce a single (opentracing-compliant) error (see mergeExtractedError for specifics on this).
+func (p *CompositePropagator) Extract(abstractCarrier interface{}) (SpanContext, error) {
+	extractedContexts := make([]SpanContext, 0)
+	extractedErrors := make([]error, 0)
+
+	for _, propagator := range p.propagators {
+		sc, err := propagator.Extract(abstractCarrier)
+
+		if err != nil {
+			extractedErrors = append(extractedErrors, err)
+		} else {
+			extractedContexts = append(extractedContexts, sc)
+		}
+	}
+
+	return combineExtractResults(extractedContexts, extractedErrors)
+}
+
+func combineExtractResults(contexts []SpanContext, errors []error) (SpanContext, error) {
+	ret := emptyContext
+	var err error
+
+	for _, sc := range contexts {
+		// Base case
+		if !ret.IsValid() && !ret.isDebugIDContainerOnly() {
+			ret = sc
+		} else if sc.IsValid() {
+			// If the context is valid (i.e. a full span context), it should either be merged with another valid context
+			// (that we've already extracted) or a debug container
+			if ret.IsValid() {
+				ret, err = mergeValidContexts(ret, sc)
+			} else {
+				ret, err = mergeContextWithDebugIDContainer(sc, ret)
+			}
+
+			if err != nil {
+				return emptyContext, opentracing.ErrSpanContextCorrupted
+			}
+		} else if sc.isDebugIDContainerOnly() {
+			// If the context represents a debug container, we can ignore the remaining fields and simply attempt to
+			// extend what we already have (ensuring the debug info doesn't clash either)
+			ret, err = mergeContextWithDebugIDContainer(ret, sc)
+
+			if err != nil {
+				return emptyContext, opentracing.ErrSpanContextCorrupted
+			}
+		}
+	}
+
+	// If we were unable to produce a usable span (i.e. valid or a debug container), we need to return an empty context
+	// and combine all the errors into one
+	if !ret.IsValid() && !ret.isDebugIDContainerOnly() {
+		return emptyContext, mergeExtractedErrors(errors)
+	}
+
+	return ret, nil
+}
+
+func mergeContextWithDebugIDContainer(base SpanContext, new SpanContext) (SpanContext, error) {
+	if base.debugID == "" {
+		base.debugID = new.debugID
+	} else if base.debugID != new.debugID {
+		return emptyContext, errCannotMergeSpanContexts
+	}
+
+	return base, nil
+}
+
+func mergeValidContexts(base SpanContext, new SpanContext) (SpanContext, error) {
+	var err error
+
+	// Ensure the basic IDs don't clash
+	if base.traceID != new.traceID ||
+		base.spanID != new.spanID ||
+		base.parentID != new.parentID {
+		return emptyContext, errCannotMergeSpanContexts
+	}
+
+	// Merge (or extend) debug information
+	if new.debugID != "" {
+		base, err = mergeContextWithDebugIDContainer(base, new)
+
+		if err != nil {
+			return emptyContext, errCannotMergeSpanContexts
+		}
+	}
+
+	// Extend the flags
+	base.flags = base.flags | new.flags
+
+	// Extend the baggage as long as there are no clashes
+	for k, v := range new.baggage {
+		if baseVal, ok := base.baggage[k]; ok && baseVal != v {
+			return emptyContext, errCannotMergeSpanContexts
+		}
+
+		base.baggage[k] = v
+	}
+
+	return base, nil
+}
+
+// mergeExtractedErrors merges multiple Extractor.Extract() errors (obtained from an unsuccessful extraction by a
+// composite propagator) into one.
+//
+// The merging logic is as follows:
+// - If at least one Extractor was able to interpret data from the carrier (i.e. the carrier was valid and matched the
+// expected format), we assume the client had the intention of propagating data in that format and using that Extractor.
+// - If at least one Extractor went as far in the extraction process as reaching lower level errors (e.g.
+// ErrSpanContextCorrupted or custom decoding errors when every other error was already checked for),
+// ErrSpanContextCorrupted will be returned.
+// - If no Extractor went that far, the "dirtiest" error - i.e. the error that is caused further down the error pipeline
+// (e.g. an ErrSpanContextNotFound shouldn't even happen if the carrier is invalid, as ErrInvalidCarrier has precedence
+// over it) - will be returned.
+func mergeExtractedErrors(errors []error) error {
+	ret := opentracing.ErrSpanContextNotFound
+
+	for _, err := range errors {
+		switch err {
+		case opentracing.ErrSpanContextCorrupted:
+			// Return immediately as this is the dirtiest possible error recognized by opentracing
+			return err
+		case opentracing.ErrInvalidCarrier:
+			ret = err
+		case opentracing.ErrInvalidSpanContext:
+			if ret != opentracing.ErrInvalidCarrier {
+				ret = err
+			}
+		case opentracing.ErrUnsupportedFormat:
+			if ret != opentracing.ErrInvalidCarrier && ret != opentracing.ErrInvalidSpanContext {
+				ret = err
+			}
+		case opentracing.ErrSpanContextNotFound:
+			// Do nothing as this is the base error
+		default:
+			// Some other error leaked through (assume the span is corrupted)
+			return opentracing.ErrSpanContextCorrupted
+		}
+	}
+
+	return ret
 }

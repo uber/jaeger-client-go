@@ -97,13 +97,13 @@ func NewTracer(
 	}
 
 	// register default injectors/extractors unless they are already provided via options
-	textPropagator := newTextMapPropagator(getDefaultHeadersConfig(), t.metrics)
+	textPropagator := NewTextMapPropagator(GetDefaultHeadersConfig(), t.metrics)
 	t.addCodec(opentracing.TextMap, textPropagator, textPropagator)
 
-	httpHeaderPropagator := newHTTPHeaderPropagator(getDefaultHeadersConfig(), t.metrics)
+	httpHeaderPropagator := NewHTTPHeaderPropagator(GetDefaultHeadersConfig(), t.metrics)
 	t.addCodec(opentracing.HTTPHeaders, httpHeaderPropagator, httpHeaderPropagator)
 
-	binaryPropagator := newBinaryPropagator(t)
+	binaryPropagator := NewBinaryPropagator(t)
 	t.addCodec(opentracing.Binary, binaryPropagator, binaryPropagator)
 
 	// TODO remove after TChannel supports OpenTracing

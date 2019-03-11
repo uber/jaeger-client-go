@@ -54,7 +54,9 @@ func (c *HeadersConfig) applyDefaults() *HeadersConfig {
 	return c
 }
 
-func getDefaultHeadersConfig() *HeadersConfig {
+// GetDefaultHeadersConfig returns an instance of HeadersConfig with the default values for the header keys used by
+// Jaeger.
+func GetDefaultHeadersConfig() *HeadersConfig {
 	return &HeadersConfig{
 		JaegerDebugHeader:        JaegerDebugHeader,
 		JaegerBaggageHeader:      JaegerBaggageHeader,
