@@ -158,24 +158,59 @@ func TestRateLimitingSampler(t *testing.T) {
 	assert.False(t, sampled)
 }
 
-func TestGuaranteedThroughputProbabilisticSamplerUpdate(t *testing.T) {
+func TestGuaranteedThroughputProbabilisticSampler_update(t *testing.T) {
 	samplingRate := 0.5
-	lowerBound := 2.0
-	sampler, err := NewGuaranteedThroughputProbabilisticSampler(lowerBound, samplingRate)
+	minSamplesPerSecond := 2.0
+	maxSamplesPerSecond := 10.0
+	sampler, err := NewGuaranteedThroughputProbabilisticSampler(samplingRate, minSamplesPerSecond, maxSamplesPerSecond)
 	assert.NoError(t, err)
 
-	assert.Equal(t, lowerBound, sampler.lowerBound)
+	assert.Equal(t, minSamplesPerSecond, sampler.minSamplesPerSecond)
 	assert.Equal(t, samplingRate, sampler.samplingRate)
+	assert.Equal(t, maxSamplesPerSecond, sampler.maxSamplesPerSecond)
 
 	newSamplingRate := 0.6
-	newLowerBound := 1.0
-	sampler.update(newLowerBound, newSamplingRate)
-	assert.Equal(t, newLowerBound, sampler.lowerBound)
+	newMinSamplesPerSecond := 1.0
+	newMaxSamplesPerSecond := 20.0
+	sampler.update(newSamplingRate, newMinSamplesPerSecond, newMaxSamplesPerSecond)
+	assert.Equal(t, newMinSamplesPerSecond, sampler.minSamplesPerSecond)
 	assert.Equal(t, newSamplingRate, sampler.samplingRate)
+	assert.Equal(t, newMaxSamplesPerSecond, sampler.maxSamplesPerSecond)
 
 	newSamplingRate = 1.1
-	sampler.update(newLowerBound, newSamplingRate)
+	sampler.update(newSamplingRate, newMinSamplesPerSecond, newMaxSamplesPerSecond)
 	assert.Equal(t, 1.0, sampler.samplingRate)
+}
+
+func TestGuaranteedThroughputProbabilisticSampler_maxSamplesPerSecond(t *testing.T) {
+	minSamplesPerSecond := 0.1
+	maxSamplesPerSecond := 1.0
+	sampler, err := NewGuaranteedThroughputProbabilisticSampler(testDefaultSamplingProbability, minSamplesPerSecond, maxSamplesPerSecond)
+	assert.NoError(t, err)
+
+	sampled, tags := sampler.IsSampled(TraceID{Low: testMaxID - 20}, testOperationName)
+	assert.True(t, sampled)
+	assert.Equal(t, testProbabilisticExpectedTags, tags)
+
+	// maxSamplesPerSecond overflow
+	sampled, tags = sampler.IsSampled(TraceID{Low: testMaxID - 20}, testOperationName)
+	assert.True(t, sampled)
+	assert.Equal(t, testProbabilisticExpectedTags, tags)
+
+	// sampler should be using halved probability + maxSamplesPerSecond overflow
+	sampled, tags = sampler.IsSampled(TraceID{Low: testMaxID / 2}, testOperationName)
+	assert.True(t, sampled)
+	assert.Equal(t, []Tag{
+		{"sampler.type", "probabilistic"},
+		{"sampler.param", 0.25},
+	}, tags)
+
+	// reset the sampling probability and the upperbound rate limiter
+	sampler.update(testDefaultSamplingProbability, minSamplesPerSecond, 10)
+
+	sampled, tags = sampler.IsSampled(TraceID{Low: testMaxID - 20}, testOperationName)
+	assert.True(t, sampled)
+	assert.Equal(t, testProbabilisticExpectedTags, tags)
 }
 
 func TestAdaptiveSampler(t *testing.T) {
@@ -236,7 +271,7 @@ func TestAdaptiveSamplerErrors(t *testing.T) {
 
 func TestAdaptiveSamplerUpdate(t *testing.T) {
 	samplingRate := 0.1
-	lowerBound := 2.0
+	minSamplesPerSecond := 2.0
 	samplingRates := []*sampling.OperationSamplingStrategy{
 		{
 			Operation:             testOperationName,
@@ -245,7 +280,7 @@ func TestAdaptiveSamplerUpdate(t *testing.T) {
 	}
 	strategies := &sampling.PerOperationSamplingStrategies{
 		DefaultSamplingProbability:       testDefaultSamplingProbability,
-		DefaultLowerBoundTracesPerSecond: lowerBound,
+		DefaultLowerBoundTracesPerSecond: minSamplesPerSecond,
 		PerOperationStrategies:           samplingRates,
 	}
 
@@ -254,13 +289,13 @@ func TestAdaptiveSamplerUpdate(t *testing.T) {
 
 	sampler, ok := s.(*adaptiveSampler)
 	assert.True(t, ok)
-	assert.Equal(t, lowerBound, sampler.lowerBound)
+	assert.Equal(t, minSamplesPerSecond, sampler.minSamplesPerSecond)
 	assert.Equal(t, testDefaultSamplingProbability, sampler.defaultSampler.SamplingRate())
 	assert.Len(t, sampler.samplers, 1)
 
 	// Update the sampler with new sampling rates
 	newSamplingRate := 0.2
-	newLowerBound := 3.0
+	newMinSamplesPerSecond := 3.0
 	newDefaultSamplingProbability := 0.1
 	newSamplingRates := []*sampling.OperationSamplingStrategy{
 		{
@@ -274,12 +309,12 @@ func TestAdaptiveSamplerUpdate(t *testing.T) {
 	}
 	strategies = &sampling.PerOperationSamplingStrategies{
 		DefaultSamplingProbability:       newDefaultSamplingProbability,
-		DefaultLowerBoundTracesPerSecond: newLowerBound,
+		DefaultLowerBoundTracesPerSecond: newMinSamplesPerSecond,
 		PerOperationStrategies:           newSamplingRates,
 	}
 
 	sampler.update(strategies)
-	assert.Equal(t, newLowerBound, sampler.lowerBound)
+	assert.Equal(t, newMinSamplesPerSecond, sampler.minSamplesPerSecond)
 	assert.Equal(t, newDefaultSamplingProbability, sampler.defaultSampler.SamplingRate())
 	assert.Len(t, sampler.samplers, 2)
 }
