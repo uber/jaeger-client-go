@@ -202,7 +202,7 @@ func reporterConfigFromEnv() (*ReporterConfig, error) {
 // is an environment variable and `defaultValue` is the value to use in case the env var is not set
 func parseTags(sTags string) []opentracing.Tag {
 	pairs := strings.Split(sTags, ",")
-	tags := make([]opentracing.Tag, 0)
+	var tags []opentracing.Tag
 	for _, p := range pairs {
 		kv := strings.SplitN(p, "=", 2)
 		k, v := strings.TrimSpace(kv[0]), strings.TrimSpace(kv[1])

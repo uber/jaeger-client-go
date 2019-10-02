@@ -22,6 +22,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/uber/jaeger-client-go/internal/ratelimiter"
 	"github.com/uber/jaeger-client-go/log"
 	"github.com/uber/jaeger-client-go/thrift-gen/sampling"
 	"github.com/uber/jaeger-client-go/utils"
@@ -43,6 +44,8 @@ type Sampler interface {
 
 	// Close does a clean shutdown of the sampler, stopping any background
 	// go-routines it may have started.
+	//
+	// Deprecated: Sampler interface will no longer have this function in v3.0.0. Typecast to io.Closer instead.
 	Close()
 
 	// Equal checks if the `other` sampler is functionally equivalent
@@ -50,6 +53,8 @@ type Sampler interface {
 	// TODO remove this function. This function is used to determine if 2 samplers are equivalent
 	// which does not bode well with the adaptive sampler which has to create all the composite samplers
 	// for the comparison to occur. This is expensive to do if only one sampler has changed.
+	//
+	// Deprecated: Sampler interface will no longer have this function in v3.0.0
 	Equal(other Sampler) bool
 }
 
@@ -151,9 +156,14 @@ func (s *ProbabilisticSampler) Equal(other Sampler) bool {
 
 // -----------------------
 
+type rateLimiter interface {
+	CheckCredit(itemCost float64) bool
+	Update(creditsPerSecond, maxBalance float64)
+}
+
 type rateLimitingSampler struct {
 	maxTracesPerSecond float64
-	rateLimiter        utils.RateLimiter
+	rateLimiter        rateLimiter
 	tags               []Tag
 }
 
@@ -162,15 +172,21 @@ type rateLimitingSampler struct {
 // requests sampled uniformly as well, but if requests are bursty, especially sub-second, then a number of
 // sequential requests can be sampled each second.
 func NewRateLimitingSampler(maxTracesPerSecond float64) Sampler {
-	tags := []Tag{
+	return (&rateLimitingSampler{}).init(maxTracesPerSecond)
+}
+
+func (s *rateLimitingSampler) init(maxTracesPerSecond float64) *rateLimitingSampler {
+	s.tags = []Tag{
 		{key: SamplerTypeTagKey, value: SamplerTypeRateLimiting},
 		{key: SamplerParamTagKey, value: maxTracesPerSecond},
 	}
-	return &rateLimitingSampler{
-		maxTracesPerSecond: maxTracesPerSecond,
-		rateLimiter:        utils.NewRateLimiter(maxTracesPerSecond, math.Max(maxTracesPerSecond, 1.0)),
-		tags:               tags,
+	s.maxTracesPerSecond = maxTracesPerSecond
+	if s.rateLimiter == nil {
+		s.rateLimiter = ratelimiter.New(maxTracesPerSecond, math.Max(maxTracesPerSecond, 1.0), ratelimiter.Options{})
+	} else {
+		s.rateLimiter.Update(maxTracesPerSecond, math.Max(maxTracesPerSecond, 1.0))
 	}
+	return s
 }
 
 // IsSampled implements IsSampled() of Sampler.
@@ -189,6 +205,13 @@ func (s *rateLimitingSampler) Equal(other Sampler) bool {
 	return false
 }
 
+func (s *rateLimitingSampler) update(maxTracesPerSecond float64) {
+	if s.maxTracesPerSecond == maxTracesPerSecond {
+		return
+	}
+	s.init(maxTracesPerSecond)
+}
+
 // -----------------------
 
 // GuaranteedThroughputProbabilisticSampler is a sampler that leverages both probabilisticSampler and
@@ -200,7 +223,7 @@ func (s *rateLimitingSampler) Equal(other Sampler) bool {
 // samplers return true, the tags for probabilisticSampler will be used.
 type GuaranteedThroughputProbabilisticSampler struct {
 	probabilisticSampler *ProbabilisticSampler
-	lowerBoundSampler    Sampler
+	lowerBoundSampler    *rateLimitingSampler
 	tags                 []Tag
 	samplingRate         float64
 	lowerBound           float64
@@ -216,7 +239,7 @@ func NewGuaranteedThroughputProbabilisticSampler(
 
 func newGuaranteedThroughputProbabilisticSampler(lowerBound, samplingRate float64) *GuaranteedThroughputProbabilisticSampler {
 	s := &GuaranteedThroughputProbabilisticSampler{
-		lowerBoundSampler: NewRateLimitingSampler(lowerBound),
+		lowerBoundSampler: NewRateLimitingSampler(lowerBound).(*rateLimitingSampler),
 		lowerBound:        lowerBound,
 	}
 	s.setProbabilisticSampler(samplingRate)
@@ -261,7 +284,7 @@ func (s *GuaranteedThroughputProbabilisticSampler) Equal(other Sampler) bool {
 func (s *GuaranteedThroughputProbabilisticSampler) update(lowerBound, samplingRate float64) {
 	s.setProbabilisticSampler(samplingRate)
 	if s.lowerBound != lowerBound {
-		s.lowerBoundSampler = NewRateLimitingSampler(lowerBound)
+		s.lowerBoundSampler.update(lowerBound)
 		s.lowerBound = lowerBound
 	}
 }
@@ -544,16 +567,16 @@ func (s *RemotelyControlledSampler) updateAdaptiveSampler(strategies *sampling.P
 
 // NB: this function should only be called while holding a Write lock
 func (s *RemotelyControlledSampler) updateRateLimitingOrProbabilisticSampler(res *sampling.SamplingStrategyResponse) error {
-	var newSampler Sampler
 	if probabilistic := res.GetProbabilisticSampling(); probabilistic != nil {
-		newSampler = newProbabilisticSampler(probabilistic.SamplingRate)
+		s.sampler = newProbabilisticSampler(probabilistic.SamplingRate)
 	} else if rateLimiting := res.GetRateLimitingSampling(); rateLimiting != nil {
-		newSampler = NewRateLimitingSampler(float64(rateLimiting.MaxTracesPerSecond))
+		if rateLimitingSampler, ok := s.sampler.(*rateLimitingSampler); ok {
+			rateLimitingSampler.update(float64(rateLimiting.MaxTracesPerSecond))
+		} else {
+			s.sampler = NewRateLimitingSampler(float64(rateLimiting.MaxTracesPerSecond))
+		}
 	} else {
 		return fmt.Errorf("Unsupported sampling strategy type %v", res.GetStrategyType())
-	}
-	if !s.sampler.Equal(newSampler) {
-		s.sampler = newSampler
 	}
 	return nil
 }

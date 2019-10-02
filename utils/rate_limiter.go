@@ -15,24 +15,14 @@
 package utils
 
 import (
-	"sync"
-	"time"
+	"github.com/uber/jaeger-client-go/internal/ratelimiter"
 )
 
 // RateLimiter is a filter used to check if a message that is worth itemCost units is within the rate limits.
+//
+// Deprecated: RateLimiter interface will be removed in v3.0.0
 type RateLimiter interface {
 	CheckCredit(itemCost float64) bool
-}
-
-type rateLimiter struct {
-	sync.Mutex
-
-	creditsPerSecond float64
-	balance          float64
-	maxBalance       float64
-	lastTick         time.Time
-
-	timeNow func() time.Time
 }
 
 // NewRateLimiter creates a new rate limiter based on leaky bucket algorithm, formulated in terms of a
@@ -47,31 +37,8 @@ type rateLimiter struct {
 //
 // It can also be used to limit the rate of traffic in bytes, by setting creditsPerSecond to desired throughput
 // as bytes/second, and calling CheckCredit() with the actual message size.
+//
+// Deprecated: NewRateLimiter will no be exposed as a public API in v3.0.0
 func NewRateLimiter(creditsPerSecond, maxBalance float64) RateLimiter {
-	return &rateLimiter{
-		creditsPerSecond: creditsPerSecond,
-		balance:          maxBalance,
-		maxBalance:       maxBalance,
-		lastTick:         time.Now(),
-		timeNow:          time.Now}
-}
-
-func (b *rateLimiter) CheckCredit(itemCost float64) bool {
-	b.Lock()
-	defer b.Unlock()
-	// calculate how much time passed since the last tick, and update current tick
-	currentTime := b.timeNow()
-	elapsedTime := currentTime.Sub(b.lastTick)
-	b.lastTick = currentTime
-	// calculate how much credit have we accumulated since the last tick
-	b.balance += elapsedTime.Seconds() * b.creditsPerSecond
-	if b.balance > b.maxBalance {
-		b.balance = b.maxBalance
-	}
-	// if we have enough credits to pay for current item, then reduce balance and allow
-	if b.balance >= itemCost {
-		b.balance -= itemCost
-		return true
-	}
-	return false
+	return ratelimiter.New(creditsPerSecond, maxBalance, ratelimiter.Options{})
 }
