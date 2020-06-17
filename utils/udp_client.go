@@ -35,6 +35,8 @@ type AgentClientUDP struct {
 	agent.Agent
 	io.Closer
 
+	hostPort      string
+	destAddr      *net.UDPAddr
 	connUDP       *net.UDPConn
 	client        *agent.AgentClient
 	maxPacketSize int                   // max size of datagram in bytes
@@ -65,6 +67,8 @@ func NewAgentClientUDP(hostPort string, maxPacketSize int) (*AgentClientUDP, err
 	}
 
 	clientUDP := &AgentClientUDP{
+		hostPort:      hostPort,
+		destAddr:      destAddr,
 		connUDP:       connUDP,
 		client:        client,
 		maxPacketSize: maxPacketSize,
@@ -88,8 +92,24 @@ func (a *AgentClientUDP) EmitBatch(batch *jaeger.Batch) error {
 		return fmt.Errorf("data does not fit within one UDP packet; size %d, max %d, spans %d",
 			a.thriftBuffer.Len(), a.maxPacketSize, len(batch.Spans))
 	}
-	_, err := a.connUDP.Write(a.thriftBuffer.Bytes())
-	return err
+
+	destAddr, err := net.ResolveUDPAddr("udp", a.hostPort)
+	if err != nil {
+		return err
+	}
+
+	if destAddr.String() != a.destAddr.String() {
+		a.connUDP.Close()
+		connUDP, err := net.DialUDP(destAddr.Network(), nil, destAddr)
+		if err != nil {
+			return err
+		}
+		a.connUDP = connUDP
+	}
+	if _, err := a.connUDP.Write(a.thriftBuffer.Bytes()); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Close implements Close() of io.Closer and closes the underlying UDP connection.
