@@ -37,6 +37,7 @@ const (
 	envSamplerParam                        = "JAEGER_SAMPLER_PARAM"
 	envSamplerManagerHostPort              = "JAEGER_SAMPLER_MANAGER_HOST_PORT" // Deprecated by envSamplingEndpoint
 	envSamplingEndpoint                    = "JAEGER_SAMPLING_ENDPOINT"
+	envSamplerStrategiesFile               = "JAEGER_SAMPLER_STRATEGIES_FILE"
 	envSamplerMaxOperations                = "JAEGER_SAMPLER_MAX_OPERATIONS"
 	envSamplerRefreshInterval              = "JAEGER_SAMPLER_REFRESH_INTERVAL"
 	envReporterMaxQueueSize                = "JAEGER_REPORTER_MAX_QUEUE_SIZE"
@@ -129,13 +130,39 @@ func (sc *SamplerConfig) samplerConfigFromEnv() (*SamplerConfig, error) {
 		}
 	}
 
-	if e := os.Getenv(envSamplingEndpoint); e != "" {
-		sc.SamplingServerURL = e
-	} else if e := os.Getenv(envSamplerManagerHostPort); e != "" {
-		sc.SamplingServerURL = e
+	samplingEndpoint := os.Getenv(envSamplingEndpoint)
+	samplingManagerHostPort := os.Getenv(envSamplerManagerHostPort)
+	strategiesFile := os.Getenv(envSamplerStrategiesFile)
+
+	// Only allow either the sampling endpoint or the sampling strategies file,
+	// but not both.
+	if (samplingEndpoint != "" || samplingManagerHostPort != "") && strategiesFile != "" {
+		var endpointEnv, endpointVal string
+		if samplingEndpoint != "" {
+			endpointEnv = envSamplingEndpoint
+			endpointVal = samplingEndpoint
+		} else if samplingManagerHostPort != "" {
+			endpointEnv = envSamplerManagerHostPort
+			endpointVal = samplingManagerHostPort
+		}
+		return nil, fmt.Errorf(
+			"Cannot set both $%s (%s) and $%s (%s)",
+			endpointEnv, endpointVal,
+			envSamplerStrategiesFile, strategiesFile,
+		)
+	}
+
+	if samplingEndpoint != "" {
+		sc.SamplingServerURL = samplingEndpoint
+	} else if samplingManagerHostPort != "" {
+		sc.SamplingServerURL = samplingManagerHostPort
 	} else if e := os.Getenv(envAgentHost); e != "" {
 		// Fallback if we know the agent host - try the sampling endpoint there
 		sc.SamplingServerURL = fmt.Sprintf("http://%s:%d/sampling", e, jaeger.DefaultSamplingServerPort)
+	}
+
+	if strategiesFile != "" {
+		sc.SamplerStrategiesFile = strategiesFile
 	}
 
 	if e := os.Getenv(envSamplerMaxOperations); e != "" {

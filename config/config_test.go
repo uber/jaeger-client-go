@@ -146,49 +146,136 @@ func TestConfigFromEnv(t *testing.T) {
 	unsetEnv(t, envTags)
 }
 
-func TestSamplerConfig(t *testing.T) {
-	// prepare
-	setEnv(t, envSamplerType, "const")
-	setEnv(t, envSamplerParam, "1")
-	setEnv(t, envSamplingEndpoint, "http://themaster:5778/sampling")
-	setEnv(t, envSamplerMaxOperations, "10")
-	setEnv(t, envSamplerRefreshInterval, "1m1s") // 61 seconds
-
-	//existing SamplerConfig data
-	sc := SamplerConfig{
-		Type:                    "const-sample-config",
-		Param:                   2,
-		SamplingServerURL:       "http://themaster-sample-config",
-		MaxOperations:           20,
-		SamplingRefreshInterval: 2,
+func TestValidSamplerConfig(t *testing.T) {
+	tests := []struct {
+		name           string
+		envs           map[string]string
+		existingConfig SamplerConfig
+		expectedConfig SamplerConfig
+	}{
+		{
+			name: "existing-config",
+			envs: map[string]string{
+				envSamplerType:          "const",
+				envSamplerParam:         "1",
+				envSamplerMaxOperations: "10",
+			},
+			existingConfig: SamplerConfig{
+				Type:          "const-sample-config",
+				Param:         2,
+				MaxOperations: 20,
+			},
+			expectedConfig: SamplerConfig{
+				Type:          "const",
+				Param:         1,
+				MaxOperations: 10,
+			},
+		},
+		{
+			name: "remote-sampling-url",
+			envs: map[string]string{
+				envSamplerType:            "const",
+				envSamplerParam:           "1",
+				envSamplingEndpoint:       "http://themaster:5778/sampling",
+				envSamplerRefreshInterval: "1m1s",
+			},
+			existingConfig: SamplerConfig{},
+			expectedConfig: SamplerConfig{
+				Type:                    "const",
+				Param:                   1,
+				SamplingServerURL:       "http://themaster:5778/sampling",
+				SamplingRefreshInterval: time.Minute + time.Second,
+			},
+		},
+		{
+			name: "remote-sampling-file",
+			envs: map[string]string{
+				envSamplerType:            "const",
+				envSamplerParam:           "1",
+				envSamplerRefreshInterval: "1m1s",
+				envSamplerStrategiesFile:  "/tmp/strategies.json",
+			},
+			existingConfig: SamplerConfig{},
+			expectedConfig: SamplerConfig{
+				Type:                    "const",
+				Param:                   1,
+				SamplingRefreshInterval: time.Minute + time.Second,
+				SamplerStrategiesFile:   "/tmp/strategies.json",
+			},
+		},
 	}
 
-	// test
-	cfg, err := sc.samplerConfigFromEnv()
-	assert.NoError(t, err)
-
-	// verify
-	assert.Equal(t, "const", cfg.Type)
-	assert.Equal(t, float64(1), cfg.Param)
-	assert.Equal(t, "http://themaster:5778/sampling", cfg.SamplingServerURL)
-	assert.Equal(t, 10, cfg.MaxOperations)
-	assert.Equal(t, 61000000000, int(cfg.SamplingRefreshInterval))
-
-	// cleanup
-	unsetEnv(t, envSamplerType)
-	unsetEnv(t, envSamplerParam)
-	unsetEnv(t, envSamplingEndpoint)
-	unsetEnv(t, envSamplerMaxOperations)
-	unsetEnv(t, envSamplerRefreshInterval)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup envs
+			for key, value := range tt.envs {
+				setEnv(t, key, value)
+				defer func(key string) {
+					unsetEnv(t, key)
+				}(key)
+			}
+			// test
+			cfg, err := tt.existingConfig.samplerConfigFromEnv()
+			require.NoError(t, err)
+			assert.Equal(t, *cfg, tt.expectedConfig)
+		})
+	}
 }
 
-func TestSamplerConfigOptions(t *testing.T) {
+func TestInvalidSamplerConfig(t *testing.T) {
+	tests := []struct {
+		name           string
+		envs           map[string]string
+		existingConfig SamplerConfig
+	}{
+		{
+			name: "both-remote-stategy-options",
+			envs: map[string]string{
+				envSamplerType:            "const",
+				envSamplerParam:           "1",
+				envSamplingEndpoint:       "http://themaster:5778/sampling",
+				envSamplerRefreshInterval: "1m1s",
+				envSamplerStrategiesFile:  "/tmp/strategies.json",
+			},
+			existingConfig: SamplerConfig{},
+		},
+		{
+			name: "both-remote-stategy-options2",
+			envs: map[string]string{
+				envSamplerType:            "const",
+				envSamplerParam:           "1",
+				envSamplerManagerHostPort: "1234",
+				envSamplerRefreshInterval: "1m1s",
+				envSamplerStrategiesFile:  "/tmp/strategies.json",
+			},
+			existingConfig: SamplerConfig{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup envs
+			for key, value := range tt.envs {
+				setEnv(t, key, value)
+				defer func(key string) {
+					unsetEnv(t, key)
+				}(key)
+			}
+			// test
+			_, err := tt.existingConfig.samplerConfigFromEnv()
+			assert.Error(t, err)
+		})
+	}
+}
+
+func TestValidSamplerConfigOptions(t *testing.T) {
 	initSampler := jaeger.NewRateLimitingSampler(1)
 	cfg := SamplerConfig{
 		// test passing options
 		Options: []jaeger.SamplerOption{
 			jaeger.SamplerOptions.InitialSampler(initSampler),
 		},
+		SamplingServerURL: "http://themaster:5778/sampling",
 	}
 	sampler, err := cfg.NewSampler("service", jaeger.NewNullMetrics())
 	require.NoError(t, err)
@@ -567,6 +654,35 @@ func TestInvalidSamplerType(t *testing.T) {
 	rcs, ok := s.(*jaeger.RemotelyControlledSampler)
 	require.True(t, ok, "converted to RemotelyControlledSampler")
 	rcs.Close()
+}
+
+func TestInvalidRemoteSamplerStrategySettings(t *testing.T) {
+	cfg := SamplerConfig{
+		SamplerStrategiesFile: "/tmp/strategies.json",
+		SamplingServerURL:     "http://themaster:5778/sampling",
+	}
+	_, err := cfg.NewSampler("service", jaeger.NewNullMetrics())
+	require.Error(t, err)
+}
+
+func TestValidRemoteSamplerStrategySettings(t *testing.T) {
+	cfg := SamplerConfig{
+		SamplingServerURL: "http://themaster:5778/sampling",
+	}
+	s1, err := cfg.NewSampler("service", jaeger.NewNullMetrics())
+	require.NoError(t, err)
+	rcs, ok := s1.(*jaeger.RemotelyControlledSampler)
+	require.True(t, ok, "converted to RemotelyControlledSampler")
+	rcs.Close()
+
+	cfg2 := SamplerConfig{
+		SamplerStrategiesFile: "/tmp/strategies.json",
+	}
+	s2, err := cfg2.NewSampler("service", jaeger.NewNullMetrics())
+	require.NoError(t, err)
+	rcs2, ok := s2.(*jaeger.RemotelyControlledSampler)
+	require.True(t, ok, "converted to RemotelyControlledSampler")
+	rcs2.Close()
 }
 
 func TestUDPTransportType(t *testing.T) {

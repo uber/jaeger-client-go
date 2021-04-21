@@ -17,6 +17,8 @@ package jaeger
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -598,4 +600,51 @@ func TestRemotelyControlledSampler_printErrorForBrokenUpstream(t *testing.T) {
 	sampler.Close() // stop timer-based updates, we want to call them manually
 	sampler.UpdateSampler()
 	assert.Contains(t, logger.String(), "failed to fetch sampling strategy:")
+}
+
+func TestRemotelyControlledSampler_samplingStrategiesFile(t *testing.T) {
+	content := []byte("probabilistic")
+	tmpfile, err := ioutil.TempFile("", "jaeger-client-go-strategies.json")
+	require.NoError(t, err)
+
+	filename := tmpfile.Name()
+	defer os.Remove(filename) // clean up
+
+	_, err = tmpfile.Write(content)
+	require.NoError(t, err)
+	err = tmpfile.Close()
+	require.NoError(t, err)
+
+	sampler := NewRemotelyControlledSampler(
+		"client app",
+		SamplerOptions.SamplingStrategiesFile(filename),
+	)
+	defer sampler.Close() // stop timer-based updates, we want to call them manually
+
+	assert.Equal(t, sampler.samplerOptions.samplingStrategiesFile, filename)
+
+	_, ok := sampler.Sampler().(*ProbabilisticSampler)
+	assert.True(t, ok)
+}
+
+func TestFileSamplingStrategyFetcher(t *testing.T) {
+	content := []byte("probabilistic")
+	tmpfile, err := ioutil.TempFile("", "jaeger-client-go-strategies.json")
+	require.NoError(t, err)
+
+	filename := tmpfile.Name()
+	defer os.Remove(filename) // clean up
+
+	_, err = tmpfile.Write(content)
+	require.NoError(t, err)
+	err = tmpfile.Close()
+	require.NoError(t, err)
+
+	fetcher := &fileSamplingStrategyFetcher{
+		strategiesFile: filename,
+	}
+
+	result, err := fetcher.Fetch("test")
+	assert.NoError(t, err)
+	assert.Equal(t, result, content)
 }

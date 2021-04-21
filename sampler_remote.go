@@ -297,6 +297,14 @@ func (u *AdaptiveSamplerUpdater) Update(sampler SamplerV2, strategy interface{})
 
 // -----------------------
 
+type fileSamplingStrategyFetcher struct {
+	strategiesFile string
+}
+
+func (f *fileSamplingStrategyFetcher) Fetch(serviceName string) ([]byte, error) {
+	return ioutil.ReadFile(f.strategiesFile)
+}
+
 type httpSamplingStrategyFetcher struct {
 	serverURL string
 	logger    log.DebugLogger

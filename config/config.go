@@ -89,6 +89,13 @@ type SamplerConfig struct {
 	// Can be provided by FromEnv() via the environment variable named JAEGER_SAMPLER_REFRESH_INTERVAL
 	SamplingRefreshInterval time.Duration `yaml:"samplingRefreshInterval"`
 
+	// SamplerStrategiesFile is this services static sampling strategy
+	// configuration.
+	// Conflicts with SamplingServerURL.
+	// Can be provided by FromEnv() via the environment variable named
+	// JAEGER_SAMPLER_STRATEGIES_FILE
+	SamplerStrategiesFile string `yaml:"samplerStrategiesFile"`
+
 	// MaxOperations is the maximum number of operations that the PerOperationSampler
 	// will keep track of. If an operation is not tracked, a default probabilistic
 	// sampler will be used rather than the per operation specific sampler.
@@ -392,10 +399,24 @@ func (sc *SamplerConfig) NewSampler(
 		options := []jaeger.SamplerOption{
 			jaeger.SamplerOptions.Metrics(metrics),
 			jaeger.SamplerOptions.InitialSampler(initSampler),
-			jaeger.SamplerOptions.SamplingServerURL(sc.SamplingServerURL),
 			jaeger.SamplerOptions.MaxOperations(sc.MaxOperations),
 			jaeger.SamplerOptions.OperationNameLateBinding(sc.OperationNameLateBinding),
-			jaeger.SamplerOptions.SamplingRefreshInterval(sc.SamplingRefreshInterval),
+		}
+		if sc.SamplerStrategiesFile != "" && sc.SamplingServerURL != "" {
+			return nil, fmt.Errorf(
+				"cannot specify both SamplerStrategiesFile (%s) and SamplingServerURL (%s)",
+				sc.SamplerStrategiesFile, sc.SamplingServerURL,
+			)
+		} else if sc.SamplerStrategiesFile != "" {
+			options = append(options,
+				jaeger.SamplerOptions.SamplingStrategiesFile(sc.SamplerStrategiesFile),
+				jaeger.SamplerOptions.SamplingRefreshInterval(sc.SamplingRefreshInterval),
+			)
+		} else {
+			options = append(options,
+				jaeger.SamplerOptions.SamplingServerURL(sc.SamplingServerURL),
+				jaeger.SamplerOptions.SamplingRefreshInterval(sc.SamplingRefreshInterval),
+			)
 		}
 		options = append(options, sc.Options...)
 		return jaeger.NewRemotelyControlledSampler(serviceName, options...), nil

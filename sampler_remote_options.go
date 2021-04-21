@@ -36,6 +36,7 @@ type samplerOptions struct {
 	metrics                 *Metrics
 	sampler                 SamplerV2
 	logger                  log.DebugLogger
+	samplingStrategiesFile  string
 	samplingServerURL       string
 	samplingRefreshInterval time.Duration
 	samplingFetcher         SamplingStrategyFetcher
@@ -91,6 +92,14 @@ func (SamplerOptionsFactory) SamplingServerURL(samplingServerURL string) Sampler
 	}
 }
 
+// SamplingStrategiesFile creates a SamplerOption that sets the sampling
+// strategies file path that contains the sampling strategies.
+func (SamplerOptionsFactory) SamplingStrategiesFile(samplingStrategiesFile string) SamplerOption {
+	return func(o *samplerOptions) {
+		o.samplingStrategiesFile = samplingStrategiesFile
+	}
+}
+
 // SamplingRefreshInterval creates a SamplerOption that sets how often the
 // sampler will poll local agent for the appropriate sampling strategy.
 func (SamplerOptionsFactory) SamplingRefreshInterval(samplingRefreshInterval time.Duration) SamplerOption {
@@ -140,9 +149,15 @@ func (o *samplerOptions) applyOptionsAndDefaults(opts ...SamplerOption) *sampler
 		o.samplingRefreshInterval = defaultSamplingRefreshInterval
 	}
 	if o.samplingFetcher == nil {
-		o.samplingFetcher = &httpSamplingStrategyFetcher{
-			serverURL: o.samplingServerURL,
-			logger:    o.logger,
+		if o.samplingStrategiesFile != "" {
+			o.samplingFetcher = &fileSamplingStrategyFetcher{
+				strategiesFile: o.samplingStrategiesFile,
+			}
+		} else {
+			o.samplingFetcher = &httpSamplingStrategyFetcher{
+				serverURL: o.samplingServerURL,
+				logger:    o.logger,
+			}
 		}
 	}
 	if o.samplingParser == nil {
