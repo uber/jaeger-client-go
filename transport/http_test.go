@@ -23,10 +23,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/uber/jaeger-client-go/thrift"
+	"github.com/uber/jaeger-client-go/v2/thrift"
 
-	"github.com/uber/jaeger-client-go"
-	j "github.com/uber/jaeger-client-go/thrift-gen/jaeger"
+	"github.com/uber/jaeger-client-go/v2"
+	j "github.com/uber/jaeger-client-go/v2/thrift-gen/jaeger"
 )
 
 func TestHTTPTransport(t *testing.T) {

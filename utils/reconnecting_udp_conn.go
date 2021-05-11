@@ -21,7 +21,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/uber/jaeger-client-go/log"
+	"github.com/uber/jaeger-client-go/v2/log"
 )
 
 // reconnectingUDPConn is an implementation of udpConn that resolves hostPort every resolveTimeout, if the resolved address is

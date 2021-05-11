@@ -20,7 +20,7 @@ import (
 
 	opentracing "github.com/opentracing/opentracing-go"
 
-	"github.com/uber/jaeger-client-go"
+	"github.com/uber/jaeger-client-go/v2"
 )
 
 // Option is a function that sets an option on Propagator

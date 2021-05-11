@@ -23,12 +23,12 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/uber/jaeger-client-go/thrift"
+	"github.com/uber/jaeger-client-go/v2/thrift"
 
-	"github.com/uber/jaeger-client-go/thrift-gen/agent"
-	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
-	"github.com/uber/jaeger-client-go/thrift-gen/zipkincore"
-	"github.com/uber/jaeger-client-go/utils"
+	"github.com/uber/jaeger-client-go/v2/thrift-gen/agent"
+	"github.com/uber/jaeger-client-go/v2/thrift-gen/jaeger"
+	"github.com/uber/jaeger-client-go/v2/thrift-gen/zipkincore"
+	"github.com/uber/jaeger-client-go/v2/utils"
 )
 
 // StartMockAgent runs a mock representation of jaeger-agent.

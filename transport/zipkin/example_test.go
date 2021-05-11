@@ -18,9 +18,9 @@ import (
 	"log"
 
 	"github.com/opentracing/opentracing-go"
-	"github.com/uber/jaeger-client-go"
-	jlog "github.com/uber/jaeger-client-go/log"
-	"github.com/uber/jaeger-client-go/transport/zipkin"
+	"github.com/uber/jaeger-client-go/v2"
+	jlog "github.com/uber/jaeger-client-go/v2/log"
+	"github.com/uber/jaeger-client-go/v2/transport/zipkin"
 )
 
 func ExampleNewHTTPTransport() {

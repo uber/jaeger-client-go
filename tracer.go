@@ -27,10 +27,10 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 
-	"github.com/uber/jaeger-client-go/internal/baggage"
-	"github.com/uber/jaeger-client-go/internal/throttler"
-	"github.com/uber/jaeger-client-go/log"
-	"github.com/uber/jaeger-client-go/utils"
+	"github.com/uber/jaeger-client-go/v2/internal/baggage"
+	"github.com/uber/jaeger-client-go/v2/internal/throttler"
+	"github.com/uber/jaeger-client-go/v2/log"
+	"github.com/uber/jaeger-client-go/v2/utils"
 )
 
 // Tracer implements opentracing.Tracer.

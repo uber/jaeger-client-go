@@ -20,8 +20,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/uber/jaeger-client-go/log"
-	"github.com/uber/jaeger-client-go/thrift-gen/zipkincore"
+	"github.com/uber/jaeger-client-go/v2/log"
+	"github.com/uber/jaeger-client-go/v2/thrift-gen/zipkincore"
 )
 
 func TestNewAgentClientUDPWithParamsBadHostport(t *testing.T) {

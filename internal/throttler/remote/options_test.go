@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/uber/jaeger-client-go"
+	"github.com/uber/jaeger-client-go/v2"
 )
 
 func TestDefaults(t *testing.T) {

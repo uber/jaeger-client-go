@@ -21,7 +21,7 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/uber/jaeger-client-go"
+	"github.com/uber/jaeger-client-go/v2"
 )
 
 var (

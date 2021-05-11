@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/uber/jaeger-lib/metrics/metricstest"
 
-	"github.com/uber/jaeger-client-go/internal/baggage"
+	"github.com/uber/jaeger-client-go/v2/internal/baggage"
 )
 
 func withTracerAndMetrics(f func(tracer *Tracer, metrics *Metrics, factory *metricstest.Factory)) {

@@ -25,9 +25,9 @@ import (
 	"github.com/uber/jaeger-lib/metrics"
 	mTestutils "github.com/uber/jaeger-lib/metrics/metricstest"
 
-	"github.com/uber/jaeger-client-go/log"
-	"github.com/uber/jaeger-client-go/testutils"
-	"github.com/uber/jaeger-client-go/thrift-gen/sampling"
+	"github.com/uber/jaeger-client-go/v2/log"
+	"github.com/uber/jaeger-client-go/v2/testutils"
+	"github.com/uber/jaeger-client-go/v2/thrift-gen/sampling"
 )
 
 func TestRemotelyControlledSampler_updateRace(t *testing.T) {

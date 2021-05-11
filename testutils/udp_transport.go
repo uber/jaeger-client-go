@@ -19,7 +19,7 @@ import (
 	"net"
 	"sync/atomic"
 
-	"github.com/uber/jaeger-client-go/thrift"
+	"github.com/uber/jaeger-client-go/v2/thrift"
 )
 
 const (

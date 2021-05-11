@@ -6,7 +6,7 @@ package tracetest
 import (
 	"bytes"
 	"fmt"
-	"github.com/uber/jaeger-client-go/thrift"
+	"github.com/uber/jaeger-client-go/v2/thrift"
 )
 
 // (needed to ensure safety because of naive import list construction.)

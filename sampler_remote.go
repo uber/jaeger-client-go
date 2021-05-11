@@ -24,8 +24,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/uber/jaeger-client-go/log"
-	"github.com/uber/jaeger-client-go/thrift-gen/sampling"
+	"github.com/uber/jaeger-client-go/v2/log"
+	"github.com/uber/jaeger-client-go/v2/thrift-gen/sampling"
 )
 
 const (
@@ -62,7 +62,7 @@ type SamplerUpdater interface {
 // delegates to it for sampling decisions.
 type RemotelyControlledSampler struct {
 	// These fields must be first in the struct because `sync/atomic` expects 64-bit alignment.
-	// Cf. https://github.com/uber/jaeger-client-go/issues/155, https://goo.gl/zW7dgq
+	// Cf. https://github.com/uber/jaeger-client-go/v2/issues/155, https://goo.gl/zW7dgq
 	closed int64 // 0 - not closed, 1 - closed
 
 	sync.RWMutex // used to serialize access to samplerOptions.sampler

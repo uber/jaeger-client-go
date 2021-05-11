@@ -17,7 +17,7 @@ package zap
 import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
-	"github.com/uber/jaeger-client-go"
+	"github.com/uber/jaeger-client-go/v2"
 	"go.uber.org/zap"
 )
 

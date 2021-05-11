@@ -17,7 +17,7 @@ package jaeger
 import (
 	"time"
 
-	"github.com/uber/jaeger-client-go/log"
+	"github.com/uber/jaeger-client-go/v2/log"
 )
 
 // ReporterOption is a function that sets some option on the reporter.

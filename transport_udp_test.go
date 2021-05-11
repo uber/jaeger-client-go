@@ -23,10 +23,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/uber/jaeger-client-go/internal/reporterstats"
-	"github.com/uber/jaeger-client-go/testutils"
-	"github.com/uber/jaeger-client-go/thrift"
-	j "github.com/uber/jaeger-client-go/thrift-gen/jaeger"
+	"github.com/uber/jaeger-client-go/v2/internal/reporterstats"
+	"github.com/uber/jaeger-client-go/v2/testutils"
+	"github.com/uber/jaeger-client-go/v2/thrift"
+	j "github.com/uber/jaeger-client-go/v2/thrift-gen/jaeger"
 )
 
 var (

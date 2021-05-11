@@ -28,9 +28,9 @@ import (
 	"github.com/stretchr/testify/suite"
 	"github.com/uber/jaeger-lib/metrics/metricstest"
 
-	"github.com/uber/jaeger-client-go/internal/baggage"
-	"github.com/uber/jaeger-client-go/log"
-	"github.com/uber/jaeger-client-go/utils"
+	"github.com/uber/jaeger-client-go/v2/internal/baggage"
+	"github.com/uber/jaeger-client-go/v2/log"
+	"github.com/uber/jaeger-client-go/v2/utils"
 )
 
 type tracerSuite struct {

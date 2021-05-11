@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 
-	jaeger "github.com/uber/jaeger-client-go"
+	jaeger "github.com/uber/jaeger-client-go/v2"
 
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"

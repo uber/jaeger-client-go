@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 	jprom "github.com/uber/jaeger-lib/metrics/prometheus"
 
-	"github.com/uber/jaeger-client-go"
+	"github.com/uber/jaeger-client-go/v2"
 )
 
 // TestNewPrometheusMetrics ensures that the metrics do not have conflicting dimensions and will work with Prometheus.
