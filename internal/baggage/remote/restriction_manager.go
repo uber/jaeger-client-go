@@ -20,9 +20,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/uber/jaeger-client-go/internal/baggage"
-	thrift "github.com/uber/jaeger-client-go/thrift-gen/baggage"
-	"github.com/uber/jaeger-client-go/utils"
+	"github.com/jaegertracing/jaeger-client-go/v3/internal/baggage"
+	thrift "github.com/jaegertracing/jaeger-client-go/v3/thrift-gen/baggage"
+	"github.com/jaegertracing/jaeger-client-go/v3/utils"
 )
 
 type httpBaggageRestrictionManagerProxy struct {

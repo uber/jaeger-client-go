@@ -19,7 +19,7 @@ import (
 
 	"github.com/opentracing/opentracing-go/log"
 
-	j "github.com/uber/jaeger-client-go/thrift-gen/jaeger"
+	j "github.com/jaegertracing/jaeger-client-go/v3/thrift-gen/jaeger"
 )
 
 type tags []*j.Tag

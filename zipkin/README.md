@@ -10,8 +10,8 @@ for use with other Zipkin collectors.
 // ...
 import (
 	opentracing "github.com/opentracing/opentracing-go"
-	jaeger "github.com/uber/jaeger-client-go"
-	"github.com/uber/jaeger-client-go/zipkin"
+	jaeger "github.com/jaegertracing/jaeger-client-go/v3"
+	"github.com/jaegertracing/jaeger-client-go/v3/zipkin"
 )
 
 func main() {
@@ -40,17 +40,17 @@ func main() {
 }
 ```
 
-If you'd like to follow the official guides from https://godoc.org/github.com/uber/jaeger-client-go/config#example-Configuration-InitGlobalTracer-Production, here is an example.
+If you'd like to follow the official guides from https://godoc.org/github.com/jaegertracing/jaeger-client-go/v3/config#example-Configuration-InitGlobalTracer-Production, here is an example.
 
 ```go
 import (
 	"time"
 
 	opentracing "github.com/opentracing/opentracing-go"
-	"github.com/uber/jaeger-client-go"
-	jaegerClientConfig "github.com/uber/jaeger-client-go/config"
-	"github.com/uber/jaeger-client-go/zipkin"
-	"github.com/uber/jaeger-client-go/log"
+	"github.com/jaegertracing/jaeger-client-go/v3"
+	jaegerClientConfig "github.com/jaegertracing/jaeger-client-go/v3/config"
+	"github.com/jaegertracing/jaeger-client-go/v3/zipkin"
+	"github.com/jaegertracing/jaeger-client-go/v3/log"
 	"github.com/uber/jaeger-lib/metrics"
 )
 
@@ -60,7 +60,7 @@ func main(){
 	// Recommended configuration for production.
 	cfg := jaegercfg.Configuration{}
 	
-	// Example logger and metrics factory. Use github.com/uber/jaeger-client-go/log
+	// Example logger and metrics factory. Use github.com/jaegertracing/jaeger-client-go/v3/log
 	// and github.com/uber/jaeger-lib/metrics respectively to bind to real logging and metrics
 	// frameworks.
 	jLogger := jaegerlog.StdLogger

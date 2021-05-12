@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/uber/jaeger-client-go"
+	"github.com/jaegertracing/jaeger-client-go/v3"
 )
 
 // TagMatcher describes which values TagMatchingSampler will match.

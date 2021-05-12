@@ -22,7 +22,7 @@ import (
 
 	"github.com/crossdock/crossdock-go"
 
-	"github.com/uber/jaeger-client-go/crossdock/common"
+	"github.com/jaegertracing/jaeger-client-go/v3/crossdock/common"
 )
 
 // Client is a controller for the tests

@@ -20,12 +20,12 @@ import (
 
 	"github.com/opentracing/opentracing-go"
 
-	"github.com/uber/jaeger-client-go"
-	"github.com/uber/jaeger-client-go/crossdock/client"
-	"github.com/uber/jaeger-client-go/crossdock/common"
-	"github.com/uber/jaeger-client-go/crossdock/log"
-	"github.com/uber/jaeger-client-go/crossdock/server"
-	jlog "github.com/uber/jaeger-client-go/log"
+	"github.com/jaegertracing/jaeger-client-go/v3"
+	"github.com/jaegertracing/jaeger-client-go/v3/crossdock/client"
+	"github.com/jaegertracing/jaeger-client-go/v3/crossdock/common"
+	"github.com/jaegertracing/jaeger-client-go/v3/crossdock/log"
+	"github.com/jaegertracing/jaeger-client-go/v3/crossdock/server"
+	jlog "github.com/jaegertracing/jaeger-client-go/v3/log"
 )
 
 func main() {
