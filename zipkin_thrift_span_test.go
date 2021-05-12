@@ -27,8 +27,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/uber/jaeger-client-go/v2/thrift-gen/zipkincore"
-	"github.com/uber/jaeger-client-go/v2/utils"
+	"github.com/jaegertracing/jaeger-client-go/v3/thrift-gen/zipkincore"
+	"github.com/jaegertracing/jaeger-client-go/v3/utils"
 )
 
 func TestThriftFirstInProcessSpan(t *testing.T) {

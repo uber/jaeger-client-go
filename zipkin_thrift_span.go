@@ -21,9 +21,9 @@ import (
 
 	"github.com/opentracing/opentracing-go/ext"
 
-	"github.com/uber/jaeger-client-go/v2/internal/spanlog"
-	z "github.com/uber/jaeger-client-go/v2/thrift-gen/zipkincore"
-	"github.com/uber/jaeger-client-go/v2/utils"
+	"github.com/jaegertracing/jaeger-client-go/v3/internal/spanlog"
+	z "github.com/jaegertracing/jaeger-client-go/v3/thrift-gen/zipkincore"
+	"github.com/jaegertracing/jaeger-client-go/v3/utils"
 )
 
 const (

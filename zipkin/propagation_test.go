@@ -18,10 +18,10 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/jaegertracing/jaeger-client-go/v3"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/uber/jaeger-client-go/v2"
 )
 
 var (

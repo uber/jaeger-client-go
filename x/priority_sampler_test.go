@@ -17,9 +17,9 @@ package x
 import (
 	"testing"
 
+	"github.com/jaegertracing/jaeger-client-go/v3"
 	"github.com/opentracing/opentracing-go"
 	"github.com/stretchr/testify/assert"
-	"github.com/uber/jaeger-client-go/v2"
 )
 
 func makePrioritySampler(t *testing.T) *PrioritySampler {

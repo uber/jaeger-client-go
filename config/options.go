@@ -18,7 +18,7 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/uber/jaeger-lib/metrics"
 
-	"github.com/uber/jaeger-client-go/v2"
+	"github.com/jaegertracing/jaeger-client-go/v3"
 )
 
 // Option is a function that sets some option on the client.

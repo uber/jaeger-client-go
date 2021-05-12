@@ -21,11 +21,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jaegertracing/jaeger-client-go/v3"
+	"github.com/jaegertracing/jaeger-client-go/v3/testutils"
+	"github.com/jaegertracing/jaeger-client-go/v3/thrift-gen/sampling"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/uber/jaeger-client-go/v2"
-	"github.com/uber/jaeger-client-go/v2/testutils"
-	"github.com/uber/jaeger-client-go/v2/thrift-gen/sampling"
 )
 
 type customSamplingStrategyResponse struct {

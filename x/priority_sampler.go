@@ -17,7 +17,7 @@ package x
 import (
 	"sync/atomic"
 
-	"github.com/uber/jaeger-client-go/v2"
+	"github.com/jaegertracing/jaeger-client-go/v3"
 )
 
 // prioritySamplerState keeps the state of all underlying samplers, specifically

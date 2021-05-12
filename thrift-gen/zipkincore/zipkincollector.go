@@ -6,7 +6,7 @@ package zipkincore
 import (
 	"bytes"
 	"fmt"
-	"github.com/uber/jaeger-client-go/v2/thrift"
+	"github.com/jaegertracing/jaeger-client-go/v3/thrift"
 )
 
 // (needed to ensure safety because of naive import list construction.)

@@ -22,8 +22,8 @@ import (
 
 	"github.com/opentracing/opentracing-go"
 
-	"github.com/uber/jaeger-client-go/v2/internal/reporterstats"
-	"github.com/uber/jaeger-client-go/v2/log"
+	"github.com/jaegertracing/jaeger-client-go/v3/internal/reporterstats"
+	"github.com/jaegertracing/jaeger-client-go/v3/log"
 )
 
 // Reporter is called by the tracer when a span is completed to report the span to the tracing collector.
@@ -193,7 +193,7 @@ func (r *reporterStats) incDroppedCount() {
 
 type remoteReporter struct {
 	// These fields must be first in the struct because `sync/atomic` expects 64-bit alignment.
-	// Cf. https://github.com/uber/jaeger-client-go/v2/issues/155, https://goo.gl/zW7dgq
+	// Cf. https://github.com/jaegertracing/jaeger-client-go/v3/issues/155, https://goo.gl/zW7dgq
 	queueLength int64 // used to update metrics.Gauge
 	closed      int64 // 0 - not closed, 1 - closed
 

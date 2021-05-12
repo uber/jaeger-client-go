@@ -17,7 +17,7 @@ package testutils
 import (
 	"sync"
 
-	"github.com/uber/jaeger-client-go/v2/thrift-gen/sampling"
+	"github.com/jaegertracing/jaeger-client-go/v3/thrift-gen/sampling"
 )
 
 func newSamplingManager() *samplingManager {

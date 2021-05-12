@@ -19,6 +19,6 @@ itegrated with Zipkin backend (http://zipkin.io).
 
 For integration instructions please refer to the README:
 
-https://github.com/uber/jaeger-client-go/v2/blob/master/README.md
+https://github.com/jaegertracing/jaeger-client-go/v3/blob/master/README.md
 */
 package jaeger

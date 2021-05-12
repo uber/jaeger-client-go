@@ -21,12 +21,12 @@ import (
 	"net"
 	"time"
 
-	"github.com/uber/jaeger-client-go/v2/log"
-	"github.com/uber/jaeger-client-go/v2/thrift"
+	"github.com/jaegertracing/jaeger-client-go/v3/log"
+	"github.com/jaegertracing/jaeger-client-go/v3/thrift"
 
-	"github.com/uber/jaeger-client-go/v2/thrift-gen/agent"
-	"github.com/uber/jaeger-client-go/v2/thrift-gen/jaeger"
-	"github.com/uber/jaeger-client-go/v2/thrift-gen/zipkincore"
+	"github.com/jaegertracing/jaeger-client-go/v3/thrift-gen/agent"
+	"github.com/jaegertracing/jaeger-client-go/v3/thrift-gen/jaeger"
+	"github.com/jaegertracing/jaeger-client-go/v3/thrift-gen/zipkincore"
 )
 
 // UDPPacketMaxLength is the max size of UDP packet we want to send, synced with jaeger-agent

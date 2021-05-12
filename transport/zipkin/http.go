@@ -32,11 +32,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/uber/jaeger-client-go/v2/thrift"
+	"github.com/jaegertracing/jaeger-client-go/v3/thrift"
 
-	"github.com/uber/jaeger-client-go/v2"
-	"github.com/uber/jaeger-client-go/v2/log"
-	"github.com/uber/jaeger-client-go/v2/thrift-gen/zipkincore"
+	"github.com/jaegertracing/jaeger-client-go/v3"
+	"github.com/jaegertracing/jaeger-client-go/v3/log"
+	"github.com/jaegertracing/jaeger-client-go/v3/thrift-gen/zipkincore"
 )
 
 // Default timeout for http request in seconds

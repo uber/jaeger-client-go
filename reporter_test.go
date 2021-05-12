@@ -30,9 +30,9 @@ import (
 	"github.com/uber/jaeger-lib/metrics"
 	"github.com/uber/jaeger-lib/metrics/metricstest"
 
-	"github.com/uber/jaeger-client-go/v2/log"
-	"github.com/uber/jaeger-client-go/v2/testutils"
-	j "github.com/uber/jaeger-client-go/v2/thrift-gen/jaeger"
+	"github.com/jaegertracing/jaeger-client-go/v3/log"
+	"github.com/jaegertracing/jaeger-client-go/v3/testutils"
+	j "github.com/jaegertracing/jaeger-client-go/v3/thrift-gen/jaeger"
 )
 
 type reporterSuite struct {

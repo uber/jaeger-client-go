@@ -1,4 +1,4 @@
-module github.com/uber/jaeger-client-go/v2
+module github.com/jaegertracing/jaeger-client-go/v3
 
 go 1.16
 
