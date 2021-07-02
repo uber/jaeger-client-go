@@ -143,16 +143,17 @@ func (s *RemotelyControlledSampler) Equal(other Sampler) bool {
 }
 
 func (s *RemotelyControlledSampler) pollController() {
-	ticker := time.NewTicker(s.samplingRefreshInterval)
+	ticker := NewTicker(s.samplingRefreshInterval)
 	defer ticker.Stop()
 	s.pollControllerWithTicker(ticker)
 }
 
-func (s *RemotelyControlledSampler) pollControllerWithTicker(ticker *time.Ticker) {
+func (s *RemotelyControlledSampler) pollControllerWithTicker(ticker *Ticker) {
 	for {
 		select {
 		case <-ticker.C:
-			s.UpdateSampler()
+			err := s.UpdateSampler()
+			ticker.UpdateTimer(err)
 		case wg := <-s.doneChan:
 			wg.Done()
 			return
@@ -174,18 +175,18 @@ func (s *RemotelyControlledSampler) setSampler(sampler SamplerV2) {
 
 // UpdateSampler forces the sampler to fetch sampling strategy from backend server.
 // This function is called automatically on a timer, but can also be safely called manually, e.g. from tests.
-func (s *RemotelyControlledSampler) UpdateSampler() {
+func (s *RemotelyControlledSampler) UpdateSampler() (err error) {
 	res, err := s.samplingFetcher.Fetch(s.serviceName)
 	if err != nil {
 		s.metrics.SamplerQueryFailure.Inc(1)
 		s.logger.Infof("failed to fetch sampling strategy: %v", err)
-		return
+		return err
 	}
 	strategy, err := s.samplingParser.Parse(res)
 	if err != nil {
 		s.metrics.SamplerUpdateFailure.Inc(1)
 		s.logger.Infof("failed to parse sampling strategy response: %v", err)
-		return
+		return err
 	}
 
 	s.Lock()
@@ -195,9 +196,10 @@ func (s *RemotelyControlledSampler) UpdateSampler() {
 	if err := s.updateSamplerViaUpdaters(strategy); err != nil {
 		s.metrics.SamplerUpdateFailure.Inc(1)
 		s.logger.Infof("failed to handle sampling strategy response %+v. Got error: %v", res, err)
-		return
+		return err
 	}
 	s.metrics.SamplerUpdated.Inc(1)
+	return err
 }
 
 // NB: this function should only be called while holding a Write lock

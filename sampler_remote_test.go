@@ -227,11 +227,14 @@ func TestRemotelyControlledSampler(t *testing.T) {
 	remoteSampler.setSampler(defaultSampler)
 
 	c := make(chan time.Time)
-	ticker := &time.Ticker{C: c}
+	ticker := &Ticker{
+		C:     c,
+		timer: time.NewTimer(time.Minute),
+	}
 	go remoteSampler.pollControllerWithTicker(ticker)
 
 	c <- time.Now() // force update based on timer
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 	remoteSampler.Close()
 
 	s2, ok := remoteSampler.Sampler().(*ProbabilisticSampler)
@@ -405,7 +408,8 @@ func TestSamplerQueryError(t *testing.T) {
 
 	sampler.Close() // stop timer-based updates, we want to call them manually
 
-	sampler.UpdateSampler()
+	err := sampler.UpdateSampler()
+	assert.NotNil(t, err)
 	assert.Equal(t, initSampler, sampler.Sampler(), "Sampler should not have been updated due to query error")
 
 	metricsFactory.AssertCounterMetrics(t,
@@ -598,4 +602,27 @@ func TestRemotelyControlledSampler_printErrorForBrokenUpstream(t *testing.T) {
 	sampler.Close() // stop timer-based updates, we want to call them manually
 	sampler.UpdateSampler()
 	assert.Contains(t, logger.String(), "failed to fetch sampling strategy:")
+}
+
+func TestRemoteSamplerParserError(t *testing.T) {
+	agent, sampler, _ := initAgent(t)
+	defer agent.Close()
+
+	fetcher := &testSamplingStrategyFetcher{response: []byte("a{")}
+	sampler.samplingFetcher = fetcher
+
+	err := sampler.UpdateSampler()
+	assert.NotNil(t, err)
+	sampler.Close()
+}
+
+func TestRemoteSamplerUpdaterError(t *testing.T) {
+	agent, sampler, _ := initAgent(t)
+	defer agent.Close()
+
+	fetcher := &testSamplingStrategyFetcher{response: []byte("{}")}
+	sampler.samplingFetcher = fetcher
+	err := sampler.UpdateSampler()
+	assert.NotNil(t, err)
+	sampler.Close()
 }
